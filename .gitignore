@@ -1,0 +1,36 @@
+# Maven
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# Build
+/build/
+*.class
+
+# Test reports
+/test-output/
+surefire-reports/
+jacoco.exec
+
+# Others
+*.swp
+*.swo

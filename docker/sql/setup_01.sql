@@ -1,0 +1,17 @@
+CREATE TABLE wallets (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(100) NOT NULL UNIQUE,
+    balance NUMERIC(19, 4) NOT NULL DEFAULT 0.0,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE transactions (
+    id SERIAL PRIMARY KEY,
+    wallet_id BIGINT NOT NULL REFERENCES wallets(id),
+    amount NUMERIC(19, 4) NOT NULL,
+    type VARCHAR(20) NOT NULL, -- DEPOSIT, WITHDRAW, TRANSFER_IN, TRANSFER_OUT
+    description TEXT,
+    related_wallet_id BIGINT,
+    timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
+);
