@@ -1,6 +1,9 @@
 package com.rgs.wallet.application.service;
 
-import com.rgs.wallet.domain.exceptions.*;
+import com.rgs.wallet.application.service.fallback.WalletFallbackHandler;
+import com.rgs.wallet.domain.exceptions.InsufficientFundsException;
+import com.rgs.wallet.domain.exceptions.UserNotFoundException;
+import com.rgs.wallet.domain.exceptions.WalletNotFoundException;
 import com.rgs.wallet.domain.model.*;
 import com.rgs.wallet.infrastructure.idempotency.CacheService;
 import com.rgs.wallet.infrastructure.idempotency.IdempotencyService;
@@ -8,15 +11,19 @@ import com.rgs.wallet.ports.in.WalletServicePort;
 import com.rgs.wallet.ports.out.TransactionPersistencePort;
 import com.rgs.wallet.ports.out.UserPersistencePort;
 import com.rgs.wallet.ports.out.WalletPersistencePort;
-import org.springframework.transaction.annotation.Transactional;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WalletService implements WalletServicePort {
@@ -26,6 +33,7 @@ public class WalletService implements WalletServicePort {
     private final TransactionPersistencePort transactionPersistence;
     private final IdempotencyService idempotencyService;
     private final CacheService cacheService;
+    private final WalletFallbackHandler fallbackHandler;
 
     @Override
     @Transactional
@@ -87,75 +95,91 @@ public class WalletService implements WalletServicePort {
 
     @Override
     @Transactional
+    @Retry(name = "walletServiceRetry")
+    @CircuitBreaker(name = "walletServiceCB")
     public void deposit(UUID walletId, BigDecimal amount, UUID requestId) {
-        idempotencyService.processWithIdempotency(requestId, () -> {
-            Wallet wallet = findWallet(walletId);
-
-            Transaction transaction = wallet.deposit(amount);
-
-            walletPersistence.save(wallet);
-            transactionPersistence.save(transaction);
-            cacheService.clearCache(walletId);
-        });
+        try {
+            idempotencyService.processWithIdempotency(requestId, () -> {
+                Wallet wallet = findWallet(walletId);
+                Transaction transaction = wallet.deposit(amount);
+                walletPersistence.save(wallet);
+                transactionPersistence.save(transaction);
+                cacheService.clearCache(walletId);
+            });
+        } catch (Throwable t) {
+            fallbackHandler.handleDepositFallback(walletId, amount, requestId, t);
+        }
     }
+
 
     @Override
     @Transactional
+    @Retry(name = "walletServiceRetry")
+    @CircuitBreaker(name = "walletServiceCB")
     public void withdraw(UUID walletId, BigDecimal amount, UUID requestId) throws InsufficientFundsException {
-        idempotencyService.processWithIdempotency(requestId, () -> {
-            Wallet wallet = findWallet(walletId);
+        try {
+            idempotencyService.processWithIdempotency(requestId, () -> {
+                Wallet wallet = findWallet(walletId);
 
-            Transaction withdrawalTransaction = wallet.withdraw(amount);
+                Transaction withdrawalTransaction = wallet.withdraw(amount);
 
-            walletPersistence.save(wallet);
-            transactionPersistence.save(withdrawalTransaction);
-            cacheService.clearCache(walletId);
-        });
+                walletPersistence.save(wallet);
+                transactionPersistence.save(withdrawalTransaction);
+                cacheService.clearCache(walletId);
+            });
+        } catch (Throwable t) {
+            fallbackHandler.handleWithdrawFallback(walletId, amount, requestId, t);
+        }
     }
 
     @Override
     @Transactional
+    @Retry(name = "walletServiceRetry")
+    @CircuitBreaker(name = "walletServiceCB")
     public void transfer(UUID fromWalletId, UUID toWalletId, BigDecimal amount, UUID requestId) {
-        idempotencyService.processWithIdempotency(requestId, () -> {
-            if (fromWalletId.equals(toWalletId)) {
-                throw new IllegalArgumentException("Cannot transfer to the same wallet");
-            }
+        try {
+            idempotencyService.processWithIdempotency(requestId, () -> {
+                if (fromWalletId.equals(toWalletId)) {
+                    throw new IllegalArgumentException("Cannot transfer to the same wallet");
+                }
 
-            Wallet source = findWallet(fromWalletId);
-            Wallet target = findWallet(toWalletId);
+                Wallet source = findWallet(fromWalletId);
+                Wallet target = findWallet(toWalletId);
 
-            Transaction transferOut = Transaction.builder()
-                    .wallet(source)
-                    .amount(amount)
-                    .type(TransactionType.TRANSFER_OUT)
-                    .createdAt(Instant.now())
-                    .build();
+                Transaction transferOut = Transaction.builder()
+                        .wallet(source)
+                        .amount(amount)
+                        .type(TransactionType.TRANSFER_OUT)
+                        .createdAt(Instant.now())
+                        .build();
 
-            Transaction transferIn = Transaction.builder()
-                    .wallet(target)
-                    .amount(amount)
-                    .type(TransactionType.TRANSFER_IN)
-                    .createdAt(Instant.now())
-                    .build();
+                Transaction transferIn = Transaction.builder()
+                        .wallet(target)
+                        .amount(amount)
+                        .type(TransactionType.TRANSFER_IN)
+                        .createdAt(Instant.now())
+                        .build();
 
-            transferOut = transactionPersistence.save(transferOut);
-            transferIn = transactionPersistence.save(transferIn);
+                transferOut = transactionPersistence.save(transferOut);
+                transferIn = transactionPersistence.save(transferIn);
 
-            transferOut.linkWithRelatedTransaction(transferIn.getId());
-            transferIn.linkWithRelatedTransaction(transferOut.getId());
+                transferOut.linkWithRelatedTransaction(transferIn.getId());
+                transferIn.linkWithRelatedTransaction(transferOut.getId());
 
-            source.setBalance(source.getBalance().subtract(amount));
-            target.setBalance(target.getBalance().add(amount));
+                source.setBalance(source.getBalance().subtract(amount));
+                target.setBalance(target.getBalance().add(amount));
 
-            transactionPersistence.save(transferOut);
-            transactionPersistence.save(transferIn);
+                transactionPersistence.save(transferOut);
+                transactionPersistence.save(transferIn);
 
-            walletPersistence.save(source);
-            walletPersistence.save(target);
-            cacheService.clearCache(fromWalletId);
-            cacheService.clearCache(toWalletId);
-        });
-
+                walletPersistence.save(source);
+                walletPersistence.save(target);
+                cacheService.clearCache(fromWalletId);
+                cacheService.clearCache(toWalletId);
+            });
+        } catch (Throwable t) {
+            fallbackHandler.handleTransferFallback(fromWalletId, toWalletId, amount, requestId, t);
+        }
     }
 
     @Override

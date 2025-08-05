@@ -10,7 +10,7 @@ public class BusinessException extends RuntimeException {
     private final ErrorCodeEnum errorCode;
     private final HttpStatus status;
 
-    protected BusinessException(HttpStatus status, ErrorCodeEnum errorCode) {
+    public BusinessException(HttpStatus status, ErrorCodeEnum errorCode) {
         this.errorCode = errorCode;
         this.status = status;
     }

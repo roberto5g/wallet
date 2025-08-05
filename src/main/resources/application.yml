@@ -18,6 +18,16 @@ spring:
     port: 6379
     timeout: 5000
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+
+
+
 app:
   idempotency:
     ttl-seconds: 600 # 10 minutes
@@ -27,3 +37,35 @@ app:
     historical-balance-ttl-seconds: 86400 # 24 hours
     wallet-ttl-seconds: 300 # 5 min
 
+resilience4j:
+  retry:
+    instances:
+      walletServiceRetry:
+        max-attempts: 3
+        wait-duration: 200ms
+        retry-exceptions:
+          - com.rgs.wallet.domain.exceptions.ConcurrentRequestException
+
+  circuitbreaker:
+    instances:
+      walletServiceCB:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+        automatic-transition-from-open-to-half-open-enabled: true
+        permitted-number-of-calls-in-half-open-state: 3
+        slow-call-duration-threshold: 2s
+        slow-call-rate-threshold: 100
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    enable:
+      all: true
