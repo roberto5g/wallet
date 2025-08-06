@@ -1,0 +1,305 @@
+{
+	"info": {
+		"_postman_id": "fc9fabff-405f-4b26-890b-f6d3e9a68ad1",
+		"name": "Wallet",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "5412553"
+	},
+	"item": [
+		{
+			"name": "Create Wallet",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"userId\": \"dcfe55ad-1955-471a-88eb-3632edb1401e\"\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/wallets",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"wallets"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Deposit Wallet",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Request-ID",
+						"value": "{{$uuid}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"walletId\": \"3a0c4447-98a5-4506-9777-a95ab147fccc\",\n  //\"walletId\": \"0e8e7e06-f6f0-4132-af25-5df7c650cf59\",\n  \"amount\": \"5000.00\"\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/wallets/deposit",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"wallets",
+						"deposit"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Withdraw Wallet",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Request-ID",
+						"value": "{{$guid}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"walletId\": \"{{waletId}}\",\n  \"amount\": 10.00\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/wallets/withdraw",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"wallets",
+						"withdraw"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Transfer amount",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Request-ID",
+						"value": "{{$guid}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fromWalletId\": \"{{fromWaletId}}\",\n  \"toWalletId\": \"{{toWaletId}}\",\n  \"amount\": 10.00\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/wallets/transfer",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"wallets",
+						"transfer"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Wallet Balance",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/wallets/{{waletId}}/balance",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"wallets",
+						"{{waletId}}",
+						"balance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Wallet Historical Balance",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"walletId\": \"0e8e7e06-f6f0-4132-af25-5df7c650cf59\",\n  \"amount\": \"421.00\"\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/wallets/{{waletId}}/historical-balance?timestamp=2025-08-03T01:24:00Z",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"wallets",
+						"{{waletId}}",
+						"historical-balance"
+					],
+					"query": [
+						{
+							"key": "timestamp",
+							"value": "2025-08-03T01:24:00Z"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Wallet",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"walletId\": \"0e8e7e06-f6f0-4132-af25-5df7c650cf59\",\n  \"amount\": \"421.00\"\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/wallets/b0e2981c-f4d1-4876-815d-08ea5545ca59",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"wallets",
+						"b0e2981c-f4d1-4876-815d-08ea5545ca59"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					"",
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
