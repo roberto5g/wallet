@@ -20,7 +20,7 @@ public interface WalletServicePort {
 
     void deposit(UUID walletId, BigDecimal amount, UUID requestId);
 
-    void withdraw(UUID walletId, BigDecimal amount, UUID requestId) throws InsufficientFundsException;
+    void withdraw(UUID walletId, BigDecimal amount, UUID requestId);
 
     void transfer(UUID fromWalletId, UUID toWalletId, BigDecimal amount, UUID requestId) throws InsufficientFundsException;
 }

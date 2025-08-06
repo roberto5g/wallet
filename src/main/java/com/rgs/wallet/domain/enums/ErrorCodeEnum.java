@@ -9,6 +9,8 @@ public enum ErrorCodeEnum {
     WS404001,
     WS404002,
     WS409001,
+    WS409002,
+    WS409003,
     WS429001,
     WS500001;
 

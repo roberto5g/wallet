@@ -4,6 +4,7 @@ package com.rgs.wallet.application.service;
 import com.rgs.wallet.domain.enums.ErrorCodeEnum;
 import com.rgs.wallet.domain.exceptions.BusinessException;
 import com.rgs.wallet.domain.exceptions.InsufficientFundsException;
+import com.rgs.wallet.domain.exceptions.UserAlreadyHasWalletException;
 import com.rgs.wallet.domain.exceptions.WalletNotFoundException;
 import com.rgs.wallet.domain.model.*;
 import com.rgs.wallet.infrastructure.idempotency.CacheService;
@@ -100,9 +101,12 @@ class WalletServiceTest {
             return null;
         }).when(idempotencyService).processWithIdempotency(eq(requestId), any(Runnable.class));
 
-        walletService.deposit(walletId, amount, requestId);
+        doThrow(new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, ErrorCodeEnum.WS500001))
+                .when(fallbackHandler)
+                .handleDepositFallback(eq(walletId), eq(amount), eq(requestId), any(WalletNotFoundException.class));
 
-        verify(fallbackHandler).handleDepositFallback(eq(walletId), eq(amount), eq(requestId), any(WalletNotFoundException.class));
+        assertThrows(BusinessException.class, () -> walletService.deposit(walletId, amount, requestId));
+
     }
 
     @Test
@@ -165,7 +169,6 @@ class WalletServiceTest {
 
         assertThrows(BusinessException.class, () -> walletService.withdraw(walletId, amount, requestId));
 
-        verify(fallbackHandler).handleWithdrawFallback(eq(walletId), eq(amount), eq(requestId), any(Throwable.class));
     }
 
 
@@ -226,6 +229,35 @@ class WalletServiceTest {
     }
 
     @Test
+    void shouldInvokeFallbackOnInsufficientFundsInTransfer() {
+        UUID fromWalletId = UUID.randomUUID();
+        UUID toWalletId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+        BigDecimal amount = new BigDecimal("100.00");
+
+        Wallet fromWallet = mock(Wallet.class);
+        Wallet toWallet = mock(Wallet.class);
+
+        when(fromWallet.getBalance()).thenReturn(BigDecimal.valueOf(50)); // insufficient
+        when(walletPersistence.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
+        when(walletPersistence.findById(toWalletId)).thenReturn(Optional.of(toWallet));
+
+        doAnswer(invocation -> {
+            Runnable runnable = invocation.getArgument(1);
+            runnable.run();
+            return null;
+        }).when(idempotencyService).processWithIdempotency(eq(requestId), any(Runnable.class));
+
+        doThrow(new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, ErrorCodeEnum.WS500001))
+                .when(fallbackHandler)
+                .handleTransferFallback(eq(fromWalletId), eq(toWalletId), eq(amount), eq(requestId), any(InsufficientFundsException.class));
+
+        assertThrows(BusinessException.class, () ->
+                walletService.transfer(fromWalletId, toWalletId, amount, requestId));
+
+    }
+
+    @Test
     void shouldThrowWhenUserAlreadyHasWallet() {
         UUID userId = UUID.randomUUID();
         User existingUser = User.builder().id(userId).build();
@@ -233,12 +265,12 @@ class WalletServiceTest {
         when(userPersistence.findById(userId)).thenReturn(Optional.of(existingUser));
         when(walletPersistence.existsByUser(existingUser)).thenReturn(true);
 
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
+        UserAlreadyHasWalletException exception = assertThrows(
+                UserAlreadyHasWalletException.class,
                 () -> walletService.createWallet(userId)
         );
 
-        assertEquals("User already has a wallet", exception.getMessage());
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(userPersistence).findById(userId);
         verify(walletPersistence).existsByUser(existingUser);
         verifyNoMoreInteractions(walletPersistence, transactionPersistence);
@@ -261,9 +293,6 @@ class WalletServiceTest {
 
         assertThrows(BusinessException.class, () -> walletService.transfer(walletId, walletId, amount, requestId));
 
-        verify(fallbackHandler).handleTransferFallback(
-                eq(walletId), eq(walletId), eq(amount), eq(requestId), any(IllegalArgumentException.class)
-        );
     }
 
 

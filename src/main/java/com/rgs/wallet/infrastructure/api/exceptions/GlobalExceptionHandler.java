@@ -14,9 +14,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.support.WebExchangeBindException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ServerWebInputException;
 
 import java.util.*;
@@ -51,6 +54,32 @@ public class GlobalExceptionHandler {
                                                                                final HttpServletRequest request){
         this.logException(exception, true);
         return this.getExceptionResponse(HttpStatus.BAD_REQUEST, request, ErrorCodeEnum.WS400001, null);
+    }
+
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ExceptionResponse> handleMethodArgumentTypeMismatchException(final MethodArgumentTypeMismatchException exception,
+                                                                               final HttpServletRequest request){
+        this.logException(exception, true);
+        return this.getExceptionResponse(HttpStatus.BAD_REQUEST, request, ErrorCodeEnum.WS400001, null);
+    }
+
+    @ExceptionHandler({HandlerMethodValidationException.class})
+    public ResponseEntity<ExceptionResponse> handleHandlerMethodValidationException(final HandlerMethodValidationException exception,
+                                                                               final HttpServletRequest request){
+        this.logException(exception, true);
+        return this.getExceptionResponse(HttpStatus.BAD_REQUEST, request, ErrorCodeEnum.WS400001, null);
+    }
+
+    @ExceptionHandler({MissingServletRequestParameterException.class})
+    public ResponseEntity<ExceptionResponse> handleMissingServletRequestParameterException(final MissingServletRequestParameterException exception,
+                                                                               final HttpServletRequest request){
+        this.logException(exception, true);
+        List<FieldError> fieldErrors = new ArrayList<>();
+        assert exception.getBody().getDetail() != null;
+        fieldErrors.add(new FieldError(exception.getParameterName(), exception.getParameterName(),
+                exception.getBody().getDetail()));
+        final var fields = this.generateFields(fieldErrors);
+        return this.getExceptionResponse(HttpStatus.BAD_REQUEST, request, ErrorCodeEnum.WS400001, fields);
     }
 
     @ExceptionHandler({ConstraintViolationException.class})

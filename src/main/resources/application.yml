@@ -19,12 +19,9 @@ spring:
     timeout: 5000
 
 springdoc:
-  api-docs:
-    path: /v3/api-docs
   swagger-ui:
-    path: /swagger-ui.html
-    operationsSorter: method
-    tagsSorter: alpha
+  path: /swagger-ui.html
+
 
 
 

@@ -1,9 +1,9 @@
 package com.rgs.wallet.infrastructure.persistence;
 
-import com.rgs.wallet.infrastructure.persistence.mapper.TransactionMapper;
-import com.rgs.wallet.infrastructure.persistence.repository.TransactionJpaRepository;
 import com.rgs.wallet.domain.model.Transaction;
 import com.rgs.wallet.infrastructure.persistence.entity.TransactionEntity;
+import com.rgs.wallet.infrastructure.persistence.mapper.TransactionMapper;
+import com.rgs.wallet.infrastructure.persistence.repository.TransactionJpaRepository;
 import com.rgs.wallet.ports.out.TransactionPersistencePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -11,7 +11,6 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository

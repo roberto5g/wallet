@@ -1,9 +1,7 @@
 package com.rgs.wallet.application.service;
 
 import com.rgs.wallet.application.service.fallback.WalletFallbackHandler;
-import com.rgs.wallet.domain.exceptions.InsufficientFundsException;
-import com.rgs.wallet.domain.exceptions.UserNotFoundException;
-import com.rgs.wallet.domain.exceptions.WalletNotFoundException;
+import com.rgs.wallet.domain.exceptions.*;
 import com.rgs.wallet.domain.model.*;
 import com.rgs.wallet.infrastructure.idempotency.CacheService;
 import com.rgs.wallet.infrastructure.idempotency.IdempotencyService;
@@ -42,7 +40,8 @@ public class WalletService implements WalletServicePort {
                 .orElseThrow(UserNotFoundException::new);
 
         if (walletPersistence.existsByUser(existingUser)) {
-            throw new IllegalStateException("User already has a wallet");
+            log.warn("User {} already has a wallet", userId);
+            throw new UserAlreadyHasWalletException();
         }
 
         Wallet newWallet = Wallet.builder()
@@ -106,6 +105,8 @@ public class WalletService implements WalletServicePort {
                 transactionPersistence.save(transaction);
                 cacheService.clearCache(walletId);
             });
+        } catch (BusinessException e) {
+            throw e;
         } catch (Throwable t) {
             fallbackHandler.handleDepositFallback(walletId, amount, requestId, t);
         }
@@ -116,7 +117,7 @@ public class WalletService implements WalletServicePort {
     @Transactional
     @Retry(name = "walletServiceRetry")
     @CircuitBreaker(name = "walletServiceCB")
-    public void withdraw(UUID walletId, BigDecimal amount, UUID requestId) throws InsufficientFundsException {
+    public void withdraw(UUID walletId, BigDecimal amount, UUID requestId) {
         try {
             idempotencyService.processWithIdempotency(requestId, () -> {
                 Wallet wallet = findWallet(walletId);
@@ -127,6 +128,8 @@ public class WalletService implements WalletServicePort {
                 transactionPersistence.save(withdrawalTransaction);
                 cacheService.clearCache(walletId);
             });
+        } catch (BusinessException e) {
+            throw e;
         } catch (Throwable t) {
             fallbackHandler.handleWithdrawFallback(walletId, amount, requestId, t);
         }
@@ -140,10 +143,13 @@ public class WalletService implements WalletServicePort {
         try {
             idempotencyService.processWithIdempotency(requestId, () -> {
                 if (fromWalletId.equals(toWalletId)) {
-                    throw new IllegalArgumentException("Cannot transfer to the same wallet");
+                    throw new SameWalletTransferException();
                 }
 
                 Wallet source = findWallet(fromWalletId);
+                if (source.getBalance().compareTo(amount) < 0) {
+                    throw new InsufficientFundsException();
+                }
                 Wallet target = findWallet(toWalletId);
 
                 Transaction transferOut = Transaction.builder()
@@ -177,6 +183,8 @@ public class WalletService implements WalletServicePort {
                 cacheService.clearCache(fromWalletId);
                 cacheService.clearCache(toWalletId);
             });
+        } catch (BusinessException e){
+            throw e;
         } catch (Throwable t) {
             fallbackHandler.handleTransferFallback(fromWalletId, toWalletId, amount, requestId, t);
         }

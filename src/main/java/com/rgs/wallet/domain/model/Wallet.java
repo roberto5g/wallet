@@ -30,13 +30,13 @@ public class Wallet {
         this.updatedAt = Instant.now();
 
         Transaction transaction = Transaction.builder()
-                .wallet(this) // Garante o vínculo
+                .wallet(this)
                 .amount(amount)
                 .type(TransactionType.DEPOSIT)
                 .createdAt(Instant.now())
                 .build();
 
-        this.transactions.add(transaction); // Adiciona à lista (importante para o cascade)
+        this.transactions.add(transaction);
         return transaction;
     }
 

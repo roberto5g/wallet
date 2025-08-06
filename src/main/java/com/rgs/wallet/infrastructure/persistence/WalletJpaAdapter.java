@@ -19,7 +19,6 @@ import java.util.UUID;
 public class WalletJpaAdapter implements WalletPersistencePort {
 
     private final WalletJpaRepository walletRepository;
-    private final TransactionJpaRepository transactionRepository;
     private final WalletMapper mapper;
 
     @Override
@@ -38,18 +37,9 @@ public class WalletJpaAdapter implements WalletPersistencePort {
     }
 
     @Override
-    public Optional<Wallet> findByUserId(UUID userId) {
-        return Optional.empty();
-    }
-
-    @Override
-    public boolean existsById(UUID walletId) {
-        return walletRepository.existsById(walletId);
-    }
-
-    @Override
     public boolean existsByUser(User user) {
-        return false;
+        return walletRepository.findByUserId(user.getId())
+                .isPresent();
     }
 
 }

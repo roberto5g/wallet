@@ -1,8 +1,6 @@
 package com.rgs.wallet.infrastructure.persistence.mapper;
 
-import com.rgs.wallet.domain.model.User;
 import com.rgs.wallet.domain.model.Wallet;
-import com.rgs.wallet.infrastructure.persistence.entity.UserEntity;
 import com.rgs.wallet.infrastructure.persistence.entity.WalletEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
