@@ -1,9 +1,27 @@
 version: '3.8'
 
 services:
-  postgres:
+  wallet_service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: wallet_service
+    environment:
+      - JAVA_OPTS=-Dspring.profiles.active=docker
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      ws_database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  ws_database:
     image: postgres:17
-    container_name: postgres17
+    container_name: ws_database
     restart: always
     environment:
       POSTGRES_USER: user
@@ -12,29 +30,29 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d walletdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
+    container_name: redis
     ports:
       - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
+    command: [ "redis-server", "--appendonly", "yes" ]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
 
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana-storage:/var/lib/grafana
-
-volumes:
-    postgres_data:
-    grafana-storage:
+networks:
+  app-network:
+    driver: bridge

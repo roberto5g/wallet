@@ -2,7 +2,7 @@ package com.rgs.wallet.infrastructure.api.exceptions;
 
 import com.rgs.wallet.domain.enums.ErrorCodeEnum;
 import com.rgs.wallet.domain.exceptions.BusinessException;
-import com.sun.jdi.request.DuplicateRequestException;
+import com.rgs.wallet.domain.exceptions.DuplicateRequestException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
